@@ -1,3 +1,5 @@
+import { supabase } from './lib/supabase'
+console.log('Supabase client:', supabase)
 type Urgency = "overdue" | "critical" | "soon" | "upcoming" | "later";
 
 type Assignment = {
