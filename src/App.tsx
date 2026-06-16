@@ -1,5 +1,6 @@
-import { supabase } from './lib/supabase'
-console.log('Supabase client:', supabase)
+import { useAuth } from './lib/useAuth'
+import { Auth } from './lib/Auth'
+
 type Urgency = "overdue" | "critical" | "soon" | "upcoming" | "later";
 
 type Assignment = {
@@ -84,6 +85,11 @@ function AssignmentCard({ assignment }: { assignment: Assignment }) {
 }
 
 function App() {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!user) return <Auth />;
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <header className="mb-6">
