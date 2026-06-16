@@ -1,5 +1,6 @@
 import { useAuth } from './lib/useAuth'
 import { Auth } from './lib/Auth'
+import { supabase } from './lib/supabase'
 
 type Urgency = "overdue" | "critical" | "soon" | "upcoming" | "later";
 
@@ -90,11 +91,23 @@ function App() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!user) return <Auth />;
 
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">The Last Deadline</h1>
-        <p className="text-gray-500">Your Canvas assignments, sorted by urgency.</p>
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">The Last Deadline</h1>
+          <p className="text-gray-500">Your Canvas assignments, sorted by urgency.</p>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="rounded-md border px-3 py-2 text-sm text-gray-600 hover:bg-gray-100"
+        >
+          Sign Out
+        </button>
       </header>
 
       <main className="mx-auto flex max-w-2xl flex-col gap-3">
