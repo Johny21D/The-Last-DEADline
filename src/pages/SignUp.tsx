@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { T, display, body } from '../lib/Theme'
+import { T, display, body } from '../lib/theme'
 import { Shell, Ember, card, input } from '../lib/Shell'
 
 export function SignUp() {
