@@ -37,7 +37,7 @@ const SAMPLE = [
 ]
 
 export function UrgencyPage() {
-  const { user, loading } = useAuth()
+  const { user, } = useAuth()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [fetching, setFetching] = useState(false)
   const [now, setNow] = useState(Date.now())
