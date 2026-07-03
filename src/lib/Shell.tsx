@@ -51,7 +51,9 @@ export function Spectrum({ height = 12 }: { height?: number }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const card: React.CSSProperties = { background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18 }
+// eslint-disable-next-line react-refresh/only-export-components
 export const input: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', background: T.ink, border: `1px solid ${T.border}`,
   borderRadius: 8, color: T.text, fontFamily: body, fontSize: 14, padding: '11px 12px', outline: 'none',

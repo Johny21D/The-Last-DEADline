@@ -21,7 +21,9 @@ export function Setup() {
     })
     if (error) {
       let detail = error.message
-      try { const ctx = (error as any).context; if (ctx?.text) detail = (await ctx.text()) || detail } catch { /* */ }
+      try {
+  const ctx = (error as { context?: { text?: () => Promise<string> } }).context 
+    if (ctx?.text) detail = (await ctx.text()) || detail} catch { /* */ }
       console.error('SYNC ERROR:', detail); setSyncMsg(`Sync failed: ${detail}`)
     } else setSyncMsg(`Synced ${data.synced} assignments.`)
     setSyncing(false)

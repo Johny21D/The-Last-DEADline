@@ -11,33 +11,32 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function usePushNotifications() {
-  const [permission, setPermission] = useState<NotificationPermission>('default')
+  const [permission, setPermission] = useState<NotificationPermission>(() => ('Notification' in window ? Notification.permission : 'default'))
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // "subscribed" is true only if BOTH the browser AND the database agree
   useEffect(() => {
-    if ('Notification' in window) setPermission(Notification.permission)
+    const checkExistingSubscription = async () => {
+      if (!('serviceWorker' in navigator)) return
+      const reg = await navigator.serviceWorker.getRegistration()
+      if (!reg) return
+      const sub = await reg.pushManager.getSubscription()
+      if (!sub) return
+      const { data: userData } = await supabase.auth.getUser()
+      const userId = userData.user?.id
+      if (!userId) return
+      const { data } = await supabase
+        .from('push_subscriptions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('endpoint', sub.endpoint)
+        .maybeSingle()
+      setSubscribed(!!data)
+    }
     checkExistingSubscription()
   }, [])
-
-  // "subscribed" is true only if BOTH the browser AND the database agree
-  async function checkExistingSubscription() {
-    if (!('serviceWorker' in navigator)) return
-    const reg = await navigator.serviceWorker.getRegistration()
-    const browserSub = await reg?.pushManager.getSubscription()
-    const { data: userData } = await supabase.auth.getUser()
-    const userId = userData.user?.id
-    if (!browserSub || !userId) { setSubscribed(false); return }
-    // confirm the DB actually has this endpoint
-    const { data } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint')
-      .eq('user_id', userId)
-      .eq('endpoint', browserSub.endpoint)
-      .maybeSingle()
-    setSubscribed(!!data)
-  }
 
   // always (re)creates a fresh subscription and saves it to the DB
   async function subscribe() {

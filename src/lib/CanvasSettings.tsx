@@ -10,11 +10,13 @@ export function CanvasSettings({ onSaved }: { onSaved?: () => void }) {
   const [message, setMessage] = useState<string | null>(null)
   const [editingToken, setEditingToken] = useState(false) // controls the inline expand
 
-  useEffect(() => { loadExisting() }, [])
-  async function loadExisting() {
-    const { data } = await supabase.from('canvas_tokens').select('canvas_domain').maybeSingle()
-    if (data) { setDomain(data.canvas_domain); setHasExisting(true) }
-  }
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from('canvas_tokens').select('canvas_domain').maybeSingle()
+      if (data) { setDomain(data.canvas_domain); setHasExisting(true) }
+    }
+    load()
+  }, [])
 
   async function saveConnection(includeToken: boolean) {
     setSaving(true); setMessage(null)

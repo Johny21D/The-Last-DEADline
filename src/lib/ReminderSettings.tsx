@@ -20,15 +20,18 @@ export function ReminderSettings() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
-  useEffect(() => { load() }, [])
-  async function load() {
-    const { data } = await supabase.from('reminder_settings').select('*').maybeSingle()
-    if (data) {
-      if (Array.isArray(data.before_offsets_min)) setOffsets(data.before_offsets_min)
-      setRepeatOn(!!data.repeat_enabled)
-      if (data.repeat_interval_min) { setRepNum(String(data.repeat_interval_min / 60 || 3)); setRepUnit('hours') }
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from('reminder_settings').select('*').maybeSingle()
+      if (data) {
+        if (Array.isArray(data.before_offsets_min)) setOffsets(data.before_offsets_min)
+        setRepeatOn(!!data.repeat_enabled)
+        if (data.repeat_interval_min) { setRepNum(String(data.repeat_interval_min / 60 || 3)); setRepUnit('hours') }
+      }
     }
-  }
+    load()
+  }, [])
+
   function addOffset() {
     const m = toMin(Number(num), unit)
     if (!m || offsets.includes(m)) return

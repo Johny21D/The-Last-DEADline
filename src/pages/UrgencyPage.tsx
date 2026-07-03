@@ -40,18 +40,25 @@ export function UrgencyPage() {
   const { user, } = useAuth()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [fetching, setFetching] = useState(false)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id) }, [])
 
   useEffect(() => {
-    if (!user) return
+  if (!user) return
+
+  const loadAssignments = async () => {
     setFetching(true)
-    supabase.from('assignments').select('*').order('due_at', { ascending: true }).then(({ data }) => {
-      if (data) setAssignments(data as Assignment[])
-      setFetching(false)
-    })
-  }, [user])
+    const { data } = await supabase
+      .from('assignments')
+      .select('*')
+      .order('due_at', { ascending: true })
+    if (data) setAssignments(data as Assignment[])
+    setFetching(false)
+  }
+
+  loadAssignments()
+}, [user])
 
   // logged in: real ranked data
   const live = assignments.filter((a) => !a.completed)
