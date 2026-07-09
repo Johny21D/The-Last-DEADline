@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/useAuth'
 import { supabase } from '../lib/supabase'
 import { T, display, body, mono } from '../lib/theme'
-import { Shell, Ember, Ghost, Spectrum } from '../lib/Shell'
+import { Shell, Ember, Spectrum } from '../lib/Shell'
 
 export function Landing() {
   const nav = useNavigate()
