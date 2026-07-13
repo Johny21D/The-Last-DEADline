@@ -25,9 +25,12 @@ export function DemoPage() {
         headers: { Authorization: `Bearer ${token}` },
         body: { title, body: msg },
       })
-      if (error) {
+        if (error) {
         let detail = error.message
-        try { const ctx = (error as any).context; if (ctx?.text) detail = (await ctx.text()) || detail } catch { /* */ }
+        try {
+          const ctx = (error as { context?: { text?: () => Promise<string> } }).context
+          if (ctx?.text) detail = (await ctx.text()) || detail
+        } catch { /* ignore */ }
         setStatus(`⚠️ ${detail}`)
       } else if (data?.sent > 0) {
         setStatus(`✅ Sent to ${data.sent} device${data.sent === 1 ? '' : 's'} — check your screen!`)
