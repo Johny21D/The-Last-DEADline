@@ -44,7 +44,7 @@ export function UrgencyPage() {
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id) }, [])
 
-  useEffect(() => {
+useEffect(() => {
   if (!user) return
 
   const loadAssignments = async () => {
@@ -57,7 +57,25 @@ export function UrgencyPage() {
     setFetching(false)
   }
 
+  // auto-sync with Canvas (at most once every 15 min), then refresh the list.
+  // keeps completions accurate: submitted work drops off and stops notifying.
+  const autoSync = async () => {
+    const last = Number(localStorage.getItem('lastAutoSync') || 0)
+    if (Date.now() - last < 15 * 60 * 1000) return
+    localStorage.setItem('lastAutoSync', String(Date.now()))
+    try {
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess.session?.access_token
+      if (!token) return
+      await supabase.functions.invoke('sync-canvas-assignments', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      await loadAssignments() // re-fetch with fresh completion flags
+    } catch { /* silent — list still shows last-known data */ }
+  }
+
   loadAssignments()
+  autoSync()
 }, [user])
 
   // logged in: real ranked data
