@@ -78,7 +78,7 @@ export function Landing() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 30, paddingBottom: 20 }}>
         {col('🔌', 'Connect your school', 'Link Canvas once with an access token.', '/connect')}
         {col('▦', 'Sorted by urgency', "See what's about to hurt, in order.", '/urgency')}
-        {col('🔔', 'Pinged everywhere', 'Reminders on your phone and laptop.', '/alerts')}
+        {col('🔔', 'See a demo', 'Watch what a reminder looks like when it fires.', '/demo')}
       </div>
     </Shell>
   )
