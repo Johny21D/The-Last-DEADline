@@ -1,20 +1,35 @@
 import { useNavigate } from 'react-router-dom'
-import { T, display, body, FONT_IMPORT } from './theme'
+import { T, display, body, FONT_IMPORT, useTheme } from './theme'
 
 export function Shell({ children, maxWidth = 640, back = false }: { children: React.ReactNode; maxWidth?: number; back?: boolean }) {
   const nav = useNavigate()
+  const { mode, toggle } = useTheme()
   return (
-    <div style={{ background: T.ink, minHeight: '100vh', padding: '8px 16px 48px', fontFamily: body }}>
+    <div style={{ background: T.ink, minHeight: '100vh', padding: '4px 14px 40px', fontFamily: body }}>
       <style>{FONT_IMPORT}</style>
       <div style={{ maxWidth, margin: '0 auto' }}>
-        <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 2px' }}>
-          <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
-            <span style={{ color: T.ember, fontSize: 18 }}>◷</span>
-            <span style={{ fontSize: 16, fontWeight: 500, color: T.text, fontFamily: display, letterSpacing: '-0.01em' }}>The Last Deadline</span>
+        <nav style={{ display: 'flex', alignItems: 'center', padding: '10px 0' }}>
+          <div onClick={() => nav('/')} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', minWidth: 0 }}>
+            <span style={{ color: T.ember, fontSize: 15 }}>◷</span>
+            <span style={{ fontSize: 13.5, fontWeight: 500, color: T.text, fontFamily: display, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>The Last Deadline</span>
           </div>
-          {back && (
-            <button onClick={() => nav(-1)} style={{ background: 'transparent', color: T.muted, border: `1px solid ${T.borderHi}`, fontFamily: body, fontSize: 13, borderRadius: 8, padding: '6px 12px', cursor: 'pointer' }}>← Back</button>
-          )}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {back && (
+              <button onClick={() => nav(-1)} style={{ background: 'transparent', color: T.muted, border: `1px solid ${T.border}`, fontFamily: body, fontSize: 12, borderRadius: 7, padding: '5px 10px', cursor: 'pointer' }}>← Back</button>
+            )}
+            <button
+              onClick={toggle}
+              aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={mode === 'dark' ? 'Light mode' : 'Dark mode'}
+              style={{
+                width: 30, height: 30, borderRadius: 7, background: 'transparent',
+                border: `1px solid ${T.border}`, cursor: 'pointer', fontSize: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, padding: 0,
+              }}
+            >
+              {mode === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </nav>
         {children}
       </div>
@@ -52,7 +67,7 @@ export function Spectrum({ height = 12 }: { height?: number }) {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const card: React.CSSProperties = { background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18 }
+export const card: React.CSSProperties = { background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16 }
 // eslint-disable-next-line react-refresh/only-export-components
 export const input: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', background: T.ink, border: `1px solid ${T.border}`,
