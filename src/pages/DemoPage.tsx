@@ -19,12 +19,38 @@ export function DemoPage() {
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState(PRESETS[1])
 
-  async function fire(title: string, msg: string) {
+  // ---- no-account demo: fires a LOCAL notification on this device ----
+  async function tryLocal() {
+    setStatus(null)
+    try {
+      if (!('Notification' in window)) {
+        setStatus('⚠️ This browser does not support notifications.')
+        return
+      }
+      const perm = await Notification.requestPermission()
+      if (perm !== 'granted') {
+        setStatus('⚠️ Notification permission was declined.')
+        return
+      }
+      // prefer the service worker (works on installed PWAs); fall back to plain Notification
+      const reg = await navigator.serviceWorker?.getRegistration()
+      const title = preview.title
+      const opts = { body: preview.body, icon: '/icon-192.png', badge: '/icon-192.png' }
+      if (reg) await reg.showNotification(title, opts)
+      else new Notification(title, opts)
+      setStatus('✅ Check your notifications — nothing was saved or collected.')
+    } catch (e) {
+      setStatus(`⚠️ ${String(e)}`)
+    }
+  }
+
+  // ---- signed-in demo: fires a REAL push through the server ----
+  async function fireReal(title: string, msg: string) {
     setSending(true); setStatus(null)
     try {
       const { data: sess } = await supabase.auth.getSession()
       const token = sess.session?.access_token
-      if (!token) { setStatus('Sign in and enable alerts to fire a real one.'); setSending(false); return }
+      if (!token) { setStatus('Sign in and enable alerts to send a real push.'); setSending(false); return }
 
       const { data, error } = await supabase.functions.invoke('send-demo', {
         headers: { Authorization: `Bearer ${token}` },
@@ -75,16 +101,16 @@ export function DemoPage() {
           </div>
         </div>
 
-        {/* preset pickers — preview always, real send when possible */}
+        {/* preset pickers — update the preview */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PRESETS.map((p) => (
             <button
               key={p.label}
-              onClick={() => { setPreview(p); fire(p.title, p.body) }}
-              disabled={sending}
+              onClick={() => setPreview(p)}
               style={{
-                background: T.panelHi, border: `1px solid ${T.border}`, borderRadius: 10,
-                padding: '11px 13px', cursor: 'pointer', textAlign: 'left', opacity: sending ? 0.5 : 1,
+                background: preview.label === p.label ? T.panelHi : 'transparent',
+                border: `1px solid ${preview.label === p.label ? T.borderHi : T.border}`, borderRadius: 10,
+                padding: '11px 13px', cursor: 'pointer', textAlign: 'left',
               }}
             >
               <div style={{ fontSize: 13, fontWeight: 500, color: T.text, fontFamily: display }}>{p.label}</div>
@@ -93,22 +119,34 @@ export function DemoPage() {
           ))}
         </div>
 
-        {status && (
-          <div style={{ fontSize: 13, fontFamily: body, marginTop: 14, textAlign: 'center', color: status.startsWith('✅') ? T.green : T.amber }}>
-            {status}
+        {/* no-account local demo — for visitors */}
+        <div style={{ marginTop: 14 }}>
+          <Ember full onClick={tryLocal}>Try it on this device</Ember>
+          <div style={{ fontSize: 10, color: T.faint, fontFamily: body, textAlign: 'center', marginTop: 6 }}>
+            No account needed — nothing is saved or collected.
+          </div>
+        </div>
+
+        {/* signed-in real push */}
+        {user && (
+          <div style={{ marginTop: 12 }}>
+            <button
+              onClick={() => fireReal(preview.title, preview.body)}
+              disabled={sending}
+              style={{
+                width: '100%', background: 'transparent', color: T.text, border: `1px solid ${T.borderHi}`,
+                cursor: 'pointer', fontFamily: display, fontWeight: 500, fontSize: 14, borderRadius: 8,
+                padding: '11px', opacity: sending ? 0.5 : 1,
+              }}
+            >
+              {sending ? 'Sending…' : 'Send a real push to my devices'}
+            </button>
           </div>
         )}
 
-        {!user && (
-          <div style={{ fontSize: 11, color: T.faint, fontFamily: body, marginTop: 14, textAlign: 'center', lineHeight: 1.5 }}>
-            Tapping a preset updates the preview. Sign in + enable alerts and it sends a real one to your device.
-          </div>
-        )}
-        {user && (
-          <div style={{ marginTop: 14 }}>
-            <Ember full disabled={sending} onClick={() => fire('The Last Deadline', 'This is a live demo notification 🎯')}>
-              {sending ? 'Sending…' : 'Send a real one to my device'}
-            </Ember>
+        {status && (
+          <div style={{ fontSize: 13, fontFamily: body, marginTop: 14, textAlign: 'center', color: status.startsWith('✅') ? T.green : T.amber }}>
+            {status}
           </div>
         )}
       </div>
