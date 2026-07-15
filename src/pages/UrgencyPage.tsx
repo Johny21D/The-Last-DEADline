@@ -37,53 +37,64 @@ const SAMPLE = [
 ]
 
 export function UrgencyPage() {
-  const { user, } = useAuth()
+  const { user } = useAuth()
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [fetching, setFetching] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id) }, [])
 
-useEffect(() => {
-  if (!user) return
+  useEffect(() => {
+    if (!user) return
 
-  const loadAssignments = async () => {
-    setFetching(true)
-    const { data } = await supabase
-      .from('assignments')
-      .select('*')
-      .order('due_at', { ascending: true })
-    if (data) setAssignments(data as Assignment[])
-    setFetching(false)
+    const loadAssignments = async () => {
+      setFetching(true)
+      const { data } = await supabase
+        .from('assignments')
+        .select('*')
+        .order('due_at', { ascending: true })
+      if (data) setAssignments(data as Assignment[])
+      setFetching(false)
+    }
+
+    // auto-sync with Canvas (at most once every 15 min), then refresh —
+    // submitted work drops off the list and stops notifying on its own.
+    const autoSync = async () => {
+      const last = Number(localStorage.getItem('lastAutoSync') || 0)
+      if (Date.now() - last < 15 * 60 * 1000) return
+      localStorage.setItem('lastAutoSync', String(Date.now()))
+      try {
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess.session?.access_token
+        if (!token) return
+        await supabase.functions.invoke('sync-canvas-assignments', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        await loadAssignments()
+      } catch { /* silent — list still shows last-known data */ }
+    }
+
+    loadAssignments()
+    autoSync()
+  }, [user])
+
+  // tap-to-complete: mark done in the DB and remove from the list instantly.
+  // sync never un-completes (upsert only flips false→true), so this sticks.
+  async function markDone(a: Assignment) {
+    setAssignments((prev) => prev.map((x) => (x.id === a.id ? { ...x, completed: true } : x)))
+    const { error } = await supabase.from('assignments').update({ completed: true }).eq('id', a.id)
+    if (error) {
+      // put it back if the update failed
+      setAssignments((prev) => prev.map((x) => (x.id === a.id ? { ...x, completed: false } : x)))
+    }
   }
-
-  // auto-sync with Canvas (at most once every 15 min), then refresh the list.
-  // keeps completions accurate: submitted work drops off and stops notifying.
-  const autoSync = async () => {
-    const last = Number(localStorage.getItem('lastAutoSync') || 0)
-    if (Date.now() - last < 15 * 60 * 1000) return
-    localStorage.setItem('lastAutoSync', String(Date.now()))
-    try {
-      const { data: sess } = await supabase.auth.getSession()
-      const token = sess.session?.access_token
-      if (!token) return
-      await supabase.functions.invoke('sync-canvas-assignments', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      await loadAssignments() // re-fetch with fresh completion flags
-    } catch { /* silent — list still shows last-known data */ }
-  }
-
-  loadAssignments()
-  autoSync()
-}, [user])
 
   // logged in: real ranked data
   const live = assignments.filter((a) => !a.completed)
   const ranked = [...live]
-  .filter((a) => new Date(a.due_at).getTime() > now)   // only future / not-yet-due
-  .sort((a, b) => +new Date(a.due_at) - +new Date(b.due_at))
-  const focal = ranked.filter((a) => new Date(a.due_at).getTime() > now)[0]
+    .filter((a) => new Date(a.due_at).getTime() > now)   // only future / not-yet-due
+    .sort((a, b) => +new Date(a.due_at) - +new Date(b.due_at))
+  const focal = ranked[0]
   const focalMs = focal ? new Date(focal.due_at).getTime() - now : 0
   const focalColor = focal ? urgencyColor[getUrgency(focal.due_at)] : T.red
 
@@ -134,8 +145,18 @@ useEffect(() => {
                 const ms = new Date(a.due_at).getTime() - now
                 const c = urgencyColor[getUrgency(a.due_at)]
                 return (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: `1px solid ${T.border}`, borderLeft: `3px solid ${c}` }}>
-                    <span style={{ fontSize: 11, color: T.text, fontFamily: body, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: 8 }}>{a.title}</span>
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 10px', borderBottom: `1px solid ${T.border}`, borderLeft: `3px solid ${c}` }}>
+                    <button
+                      onClick={() => markDone(a)}
+                      title="Mark as done"
+                      aria-label={`Mark ${a.title} as done`}
+                      style={{
+                        width: 18, height: 18, minWidth: 18, borderRadius: '50%',
+                        border: `1.5px solid ${T.faint}`, background: 'transparent',
+                        cursor: 'pointer', marginRight: 9, padding: 0,
+                      }}
+                    />
+                    <span style={{ fontSize: 11, color: T.text, fontFamily: body, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: 8, flex: 1 }}>{a.title}</span>
                     <span style={{ fontSize: 11, fontFamily: mono, color: c, whiteSpace: 'nowrap' }}>{fmt(ms)}</span>
                   </div>
                 )
@@ -152,7 +173,7 @@ useEffect(() => {
         </div>
 
         <div style={{ fontSize: 11, color: T.faint, fontFamily: body, textAlign: 'center' }}>
-          {isReal ? `Showing your ${ranked.length} upcoming assignment${ranked.length === 1 ? '' : 's'}, most urgent first.` : 'Sample shown. Sign in to see your real assignments.'}
+          {isReal ? `Tap the circle to mark something done. Showing ${ranked.length} upcoming, most urgent first.` : 'Sample shown. Sign in to see your real assignments.'}
         </div>
       </div>
     </Shell>
